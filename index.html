@@ -5,18 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Trail Tracker</title>
 <style>
-body{margin:0;background:#0b0c10;color:#f5f7fb;font-family:Arial,sans-serif}
-header{padding:15px;background:#111827;border-bottom:2px solid #d8a733}
-main{padding:12px;max-width:900px;margin:auto}
+:root{--bg:#0b0c10;--card:#151821;--line:#2a3140;--txt:#f5f7fb;--muted:#a7b0c0;--gold:#d8a733;--blue:#32d5ff;--ok:#48e07e;--warn:#ffb020;--bad:#ff5d5d}
+*{box-sizing:border-box}
+body{margin:0;background:#0b0c10;color:var(--txt);font-family:Arial,sans-serif}
+header{padding:14px;background:#111827;border-bottom:2px solid var(--gold)}
+main{padding:12px;max-width:950px;margin:auto}
 h1{margin:0;color:#ffdf7e}
-.card{background:#151821;border:1px solid #2a3140;border-radius:14px;padding:12px;margin:12px 0}
-button,input{width:100%;padding:12px;margin:5px 0;border-radius:10px;border:0;font-size:16px}
-button{background:#d8a733;font-weight:bold;color:#111}
-.secondary{background:#273142;color:white}
-.ok{color:#48e07e;font-weight:bold}.warn{color:#ffb020;font-weight:bold}.bad{color:#ff5d5d;font-weight:bold}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin:12px 0}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.big{font-size:30px;font-weight:bold}
-.small{color:#a7b0c0}
+.kpi{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.kpi div{background:#0f131b;border-radius:12px;padding:10px;text-align:center}
+input,button{width:100%;padding:12px;margin:5px 0;border-radius:10px;border:0;font-size:16px}
+button{background:var(--gold);font-weight:bold;color:#111}
+.secondary{background:#273142;color:white}
+.danger{background:#5b1f2a;color:white}
+.small{color:var(--muted)}
+.ok{color:var(--ok);font-weight:bold}.warn{color:var(--warn);font-weight:bold}.bad{color:var(--bad);font-weight:bold}
+.big{font-size:28px;font-weight:bold}
+.progress{height:18px;background:#273142;border-radius:99px;overflow:hidden}.bar{height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--blue))}
+.next{border:2px solid var(--gold)}
+.hidden{display:none}
+@media(max-width:700px){.grid,.kpi{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -32,17 +41,29 @@ button{background:#d8a733;font-weight:bold;color:#111}
 <input id="start" type="time" value="08:00" onchange="render()">
 <label>Objectif total</label>
 <input id="goal" value="08:15" onchange="render()">
-<button onclick="resetTimes()">Effacer les pointages</button>
+<div class="kpi">
+<div><b id="finishTarget">--</b><br><span class="small">objectif</span></div>
+<div><b id="finishProj">--</b><br><span class="small">projection</span></div>
+<div><b id="status">--</b><br><span class="small">statut</span></div>
+</div>
+<div class="progress"><div id="bar" class="bar"></div></div>
+<p id="progressText" class="small"></p>
+<button onclick="toggleRaceMode()">Mode course</button>
+<button class="danger" onclick="resetTimes()">Effacer les pointages</button>
 </section>
 
-<section class="card">
-<h2>Mode course</h2>
+<section id="raceMode" class="card hidden">
+<h2>MODE COURSE</h2>
 <div id="current" class="big"></div>
 <p id="currentInfos"></p>
 <p id="currentTime"></p>
 <p id="currentBarrier"></p>
 <p id="currentMargin"></p>
-<button onclick="pointNext()">Je viens d'arriver</button>
+<p id="currentNut" class="small"></p>
+<button onclick="pointNext()">Je viens d’arriver</button>
+<button class="secondary" onclick="toggleHard()">Je suis dans le dur</button>
+<p id="hardMode" class="bad hidden"></p>
+<button class="secondary" onclick="toggleRaceMode()">Retour complet</button>
 </section>
 
 <section id="sectors"></section>
@@ -60,9 +81,10 @@ const points=[
 ];
 
 let times=JSON.parse(localStorage.getItem("trail_times")||"[]");
+let hard=false;
 
 function pc(t){if(!t)return null;let a=t.split(":").map(Number);return a[0]*60+a[1]}
-function pd(t){t=t.replace("h",":");let a=t.split(":").map(Number);return a[0]*60+(a[1]||0)}
+function pd(t){t=t.toLowerCase().replace("h",":");let a=t.split(":").map(Number);return a[0]*60+(a[1]||0)}
 function fmt(m){m=Math.round(m);while(m<0)m+=1440;return String(Math.floor(m/60)%24).padStart(2,"0")+":"+String(m%60).padStart(2,"0")}
 function delta(m){let s=m>=0?"+":"-";m=Math.abs(Math.round(m));return s+Math.floor(m/60)+"h"+String(m%60).padStart(2,"0")}
 function now(){let d=new Date();return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")}
@@ -117,12 +139,84 @@ function resetTimes(){
  }
 }
 
+function toggleRaceMode(){
+ document.getElementById("raceMode").classList.toggle("hidden");
+ window.scrollTo({top:0,behavior:"smooth"});
+ render();
+}
+
+function toggleHard(){
+ hard=!hard;
+ render();
+}
+
 function render(){
+ let start=pc(document.getElementById("start").value);
+ let goal=pd(document.getElementById("goal").value);
+ let finishTarget=start+goal;
+ let finishProj=projectionFinish();
+ let diff=finishProj-finishTarget;
  let l=last();
  let next=Math.min(l+1,points.length-1);
  let p=points[next];
  let prev=points[next-1]||points[0];
 
+ document.getElementById("finishTarget").innerText=fmt(finishTarget);
+ document.getElementById("finishProj").innerText=fmt(finishProj);
+
+ let status=document.getElementById("status");
+ if(l===0){status.innerText="En attente";status.className=""}
+ else if(diff<=-15){status.innerText="Très bien";status.className="ok"}
+ else if(diff<=15){status.innerText="Dans le plan";status.className="warn"}
+ else{status.innerText="À gérer";status.className="bad"}
+
+ document.getElementById("bar").style.width=Math.min(100,(points[l].km/43)*100)+"%";
+ document.getElementById("progressText").innerText=points[l].km+" km / 43 km · prochain : "+p.name+" à "+fmt(target(next));
+
  document.getElementById("current").innerText=(next===0?"Départ":prev.name+" → "+p.name);
  document.getElementById("currentInfos").innerHTML=
-   "Secteur : <b>"+(p.km-prev.km).toFixed(1)+" km</b> · <b>+"+(p.dp-prev.dp)+" D+</b> · <b>-"+(p.dm
+   "Secteur : <b>"+(p.km-prev.km).toFixed(1)+" km</b> · <b>+"+(p.dp-prev.dp)+" D+</b> · <b>-"+(p.dm-prev.dm)+" D-</b><br>"+
+   "Total : "+p.km+" km · "+p.dp+" D+ · "+p.dm+" D-";
+ document.getElementById("currentTime").innerHTML="Passage prévu : <b>"+fmt(target(next))+"</b>";
+ document.getElementById("currentBarrier").innerHTML="Barrière : <b>"+(p.bh||"aucune")+"</b>";
+
+ let m=margin(next);
+ let cls=m===null?"small":m<0?"bad":m<45?"warn":"ok";
+ document.getElementById("currentMargin").className=cls;
+ document.getElementById("currentMargin").innerText=m===null?"Pas de barrière":"Marge barrière : "+delta(m);
+ document.getElementById("currentNut").innerText=p.nut;
+
+ let hardBox=document.getElementById("hardMode");
+ if(hard && m!==null){
+   hardBox.classList.remove("hidden");
+   hardBox.innerText="Mode urgence : marge estimée "+Math.round(m)+" min. Limite les arrêts, avance, calories rapides, hydratation.";
+ }else{
+   hardBox.classList.add("hidden");
+ }
+
+ let html="";
+ for(let i=1;i<points.length;i++){
+   let a=points[i-1],b=points[i],mi=margin(i);
+   let c=mi===null?"small":mi<0?"bad":mi<45?"warn":"ok";
+   html+=`
+   <div class="card ${i===next?"next":""}">
+   <h3>${a.name} → ${b.name}</h3>
+   <div class="grid">
+   <div><b>${(b.km-a.km).toFixed(1)} km</b><br><span class="small">distance</span></div>
+   <div><b>+${b.dp-a.dp} / -${b.dm-a.dm}</b><br><span class="small">D+ / D-</span></div>
+   </div>
+   <p>Total : ${b.km} km · ${b.dp} D+ · ${b.dm} D-</p>
+   <p>Prévu : <b>${fmt(target(i))}</b> · BH : <b>${b.bh||"aucune"}</b></p>
+   <p class="${c}">${mi===null?"Pas de barrière":"Marge : "+delta(mi)}</p>
+   <p class="small">${b.nut}</p>
+   <label>Horaire réel</label>
+   <input type="time" value="${times[i]||""}" onchange="times[${i}]=this.value;localStorage.setItem('trail_times',JSON.stringify(times));render()">
+   <button onclick="times[${i}]=now();localStorage.setItem('trail_times',JSON.stringify(times));render()">Pointer maintenant</button>
+   </div>`;
+ }
+ document.getElementById("sectors").innerHTML=html;
+}
+render();
+</script>
+</body>
+</html>
