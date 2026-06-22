@@ -4,7 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Trail Tracker</title>
+<title>Trail Tracker</title>
+
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#d8a733">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+
 <style>
+ <style>
 :root{--bg:#0b0c10;--card:#151821;--line:#2a3140;--txt:#f5f7fb;--muted:#a7b0c0;--gold:#d8a733;--blue:#32d5ff;--ok:#48e07e;--warn:#ffb020;--bad:#ff5d5d}
 *{box-sizing:border-box}
 body{margin:0;background:#0b0c10;color:var(--txt);font-family:Arial,sans-serif}
@@ -217,6 +224,11 @@ function render(){
  document.getElementById("sectors").innerHTML=html;
 }
 render();
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./service-worker.js");
+}
 </script>
 </body>
 </html>
