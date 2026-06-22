@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trail Tracker</title>
+<style>
+body{margin:0;background:#0b0c10;color:#f5f7fb;font-family:Arial,sans-serif}
+header{padding:15px;background:#111827;border-bottom:2px solid #d8a733}
+main{padding:12px;max-width:900px;margin:auto}
+h1{margin:0;color:#ffdf7e}
+.card{background:#151821;border:1px solid #2a3140;border-radius:14px;padding:12px;margin:12px 0}
+button,input{width:100%;padding:12px;margin:5px 0;border-radius:10px;border:0;font-size:16px}
+button{background:#d8a733;font-weight:bold;color:#111}
+.secondary{background:#273142;color:white}
+.ok{color:#48e07e;font-weight:bold}.warn{color:#ffb020;font-weight:bold}.bad{color:#ff5d5d;font-weight:bold}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.big{font-size:30px;font-weight:bold}
+.small{color:#a7b0c0}
+</style>
+</head>
+<body>
+<header>
+<h1>🛡️ Trail Tracker</h1>
+<div class="small">Viking race dashboard</div>
+</header>
+
+<main>
+<section class="card">
+<h2>UT4M 50 Belledonne</h2>
+<label>Heure de départ</label>
+<input id="start" type="time" value="08:00" onchange="render()">
+<label>Objectif total</label>
+<input id="goal" value="08:15" onchange="render()">
+<button onclick="resetTimes()">Effacer les pointages</button>
+</section>
+
+<section class="card">
+<h2>Mode course</h2>
+<div id="current" class="big"></div>
+<p id="currentInfos"></p>
+<p id="currentTime"></p>
+<p id="currentBarrier"></p>
+<p id="currentMargin"></p>
+<button onclick="pointNext()">Je viens d'arriver</button>
+</section>
+
+<section id="sectors"></section>
+</main>
+
+<script>
+const points=[
+{name:"Départ Rioupéroux",km:0,dp:0,dm:0,bh:"",w:0,nut:"Départ calme, bâtons prêts."},
+{name:"Arselle",km:8.4,dp:1191,dm:106,bh:"11:30",w:.225,nut:"Boire tôt. Montée à gérer sans ego."},
+{name:"Croix de Chamrousse",km:14,dp:1816,dm:117,bh:"13:15",w:.405,nut:"Remplir les flasques. Dernier vrai ravito solide avant un long secteur."},
+{name:"Refuge de la Pra",km:20.6,dp:2141,dm:588,bh:"15:00",w:.565,nut:"Point d’eau seulement. Ne pas compter sur du solide."},
+{name:"Col de Pré Long",km:33.5,dp:2773,dm:2139,bh:"18:30",w:.805,nut:"Secteur clé. Manger même sans faim. Protéger les quadriceps."},
+{name:"Villard-Bonnot",km:41.6,dp:2835,dm:3133,bh:"20:00",w:.965,nut:"Descente longue. Cadence courte si les cuisses tapent."},
+{name:"Arrivée Le Versoud",km:43,dp:2835,dm:3159,bh:"21:00",w:1,nut:"Dernier effort. Rester lucide jusqu’à l’arche."}
+];
+
+let times=JSON.parse(localStorage.getItem("trail_times")||"[]");
+
+function pc(t){if(!t)return null;let a=t.split(":").map(Number);return a[0]*60+a[1]}
+function pd(t){t=t.replace("h",":");let a=t.split(":").map(Number);return a[0]*60+(a[1]||0)}
+function fmt(m){m=Math.round(m);while(m<0)m+=1440;return String(Math.floor(m/60)%24).padStart(2,"0")+":"+String(m%60).padStart(2,"0")}
+function delta(m){let s=m>=0?"+":"-";m=Math.abs(Math.round(m));return s+Math.floor(m/60)+"h"+String(m%60).padStart(2,"0")}
+function now(){let d=new Date();return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")}
+
+function last(){
+ let l=0;
+ for(let i=0;i<times.length;i++) if(times[i]) l=i;
+ return l;
+}
+
+function projectionFinish(){
+ let start=pc(document.getElementById("start").value);
+ let goal=pd(document.getElementById("goal").value);
+ let l=last();
+ if(l>0){
+   let elapsed=pc(times[l])-start;
+   return start+elapsed/points[l].w;
+ }
+ return start+goal;
+}
+
+function target(i){
+ let start=pc(document.getElementById("start").value);
+ let goal=pd(document.getElementById("goal").value);
+ let l=last();
+ if(times[i]) return pc(times[i]);
+ if(l>0){
+   let lf=pc(times[l]);
+   let pf=projectionFinish();
+   return lf+(pf-lf)*((points[i].w-points[l].w)/(1-points[l].w));
+ }
+ return start+goal*points[i].w;
+}
+
+function margin(i){
+ if(!points[i].bh)return null;
+ return pc(points[i].bh)-target(i);
+}
+
+function pointNext(){
+ let i=Math.min(last()+1,points.length-1);
+ times[i]=now();
+ localStorage.setItem("trail_times",JSON.stringify(times));
+ render();
+}
+
+function resetTimes(){
+ if(confirm("Effacer tous les pointages ?")){
+   times=[];
+   localStorage.removeItem("trail_times");
+   render();
+ }
+}
+
+function render(){
+ let l=last();
+ let next=Math.min(l+1,points.length-1);
+ let p=points[next];
+ let prev=points[next-1]||points[0];
+
+ document.getElementById("current").innerText=(next===0?"Départ":prev.name+" → "+p.name);
+ document.getElementById("currentInfos").innerHTML=
+   "Secteur : <b>"+(p.km-prev.km).toFixed(1)+" km</b> · <b>+"+(p.dp-prev.dp)+" D+</b> · <b>-"+(p.dm
