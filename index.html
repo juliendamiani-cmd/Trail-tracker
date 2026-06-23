@@ -233,12 +233,134 @@ button{background:var(--gold);font-weight:bold;color:#111!important}
   </div>
 
 <div id="trainingApp" class="hidden">
+
 <button class="secondary" onclick="openInterface('home')">⬅️ Retour accueil</button>
 
 <section class="card">
-<h2>🏋️ Entraînements</h2>
-<p class="small">Ici on mettra le suivi training, CrossFit, muscu, PR réels et PR estimés.</p>
+<h2>📋 Débrief entraînement</h2>
+
+<label>Type</label>
+<select id="sessionType">
+<option>Run</option>
+<option>Trail</option>
+<option>CrossFit</option>
+<option>Musculation</option>
+<option>Home Trainer</option>
+<option>Rando</option>
+<option>Hyrox</option>
+<option>Autre</option>
+</select>
+
+<label>Durée (minutes)</label>
+<input id="sessionDuration" type="number">
+
+<label>Distance (km)</label>
+<input id="sessionDistance" type="number" step="0.1">
+
+<label>D+ (m)</label>
+<input id="sessionDplus" type="number">
+
+<label>Ressenti /10</label>
+<input id="sessionFeeling" type="number" min="1" max="10">
+
+<label>Commentaire</label>
+<textarea id="sessionComment"></textarea>
+
+<button onclick="saveTraining()">Enregistrer séance</button>
+
+<div id="trainingResult" class="small"></div>
+
 </section>
+
+<section class="card">
+
+<h2>🏋️ Force / CrossFit</h2>
+
+<label>Mouvement</label>
+<select id="movement">
+<option>Back Squat</option>
+<option>Front Squat</option>
+<option>Deadlift</option>
+<option>Bench Press</option>
+<option>Strict Press</option>
+<option>Push Press</option>
+<option>Snatch</option>
+<option>Clean</option>
+<option>Clean & Jerk</option>
+<option>Jerk</option>
+<option>Overhead Squat</option>
+<option>Pull-up</option>
+<option>Chest-to-bar</option>
+<option>Bar Muscle-up</option>
+<option>Ring Muscle-up</option>
+<option>Handstand Push-up</option>
+<option>Toes-to-bar</option>
+<option>Wall Ball</option>
+<option>Kettlebell Swing</option>
+<option>Box Jump</option>
+<option>Farmer Carry</option>
+<option>SkiErg</option>
+<option>Row</option>
+<option>Bike</option>
+</select>
+
+<label>Séries</label>
+<input id="sets" type="number" value="5">
+
+<label>Répétitions</label>
+<input id="reps" type="number" value="5">
+
+<label>Charge (kg)</label>
+<input id="weight" type="number">
+
+<label>PR réel validé ?</label>
+<select id="realPR">
+<option value="non">Non</option>
+<option value="oui">Oui</option>
+</select>
+
+<label>Commentaire</label>
+<input id="strengthComment">
+
+<button onclick="saveStrength()">Enregistrer performance</button>
+
+<div id="strengthResult" class="small"></div>
+
+</section>
+
+<section class="card">
+
+<h2>🏆 Records personnels</h2>
+
+<div id="prList"></div>
+
+</section>
+
+<section class="card">
+
+<h2>📈 Statistiques</h2>
+
+<div class="kpi">
+
+<div>
+<b id="totalSessions">0</b><br>
+<span class="small">séances</span>
+</div>
+
+<div>
+<b id="totalDistance">0</b><br>
+<span class="small">km</span>
+</div>
+
+<div>
+<b id="totalDplus">0</b><br>
+<span class="small">D+</span>
+</div>
+
+</div>
+
+</section>
+
 </div>
   
 </main>
