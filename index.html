@@ -805,6 +805,147 @@ html+="<p><b>"+m+"</b> : "+prs[m]+" kg</p>";
 
 document.getElementById("prList").innerHTML=html||"Aucun PR enregistré.";
 }
+
+function todayDate(){
+return new Date().toISOString().slice(0,10);
+}
+
+function estimatedPR(weight,reps){
+if(!weight || !reps)return 0;
+return Math.round((weight*(1+reps/30))*10)/10;
+}
+
+function saveTraining(){
+let session={
+date:todayDate(),
+type:document.getElementById("sessionType").value,
+duration:Number(document.getElementById("sessionDuration").value)||0,
+distance:Number(document.getElementById("sessionDistance").value)||0,
+dplus:Number(document.getElementById("sessionDplus").value)||0,
+feeling:Number(document.getElementById("sessionFeeling").value)||0,
+comment:document.getElementById("sessionComment").value||""
+};
+
+let sessions=JSON.parse(localStorage.getItem("training_sessions")||"[]");
+sessions.push(session);
+localStorage.setItem("training_sessions",JSON.stringify(sessions));
+
+document.getElementById("trainingResult").innerHTML="✅ Séance enregistrée";
+
+renderTrainingStats();
+}
+
+function saveStrength(){
+let movement=document.getElementById("movement").value;
+let sets=Number(document.getElementById("sets").value)||0;
+let reps=Number(document.getElementById("reps").value)||0;
+let weight=Number(document.getElementById("weight").value)||0;
+let realPR=document.getElementById("realPR").value==="oui";
+let comment=document.getElementById("strengthComment").value||"";
+let date=todayDate();
+
+let estimated=estimatedPR(weight,reps);
+let volume=sets*reps*weight;
+
+let sessions=JSON.parse(localStorage.getItem("strength_sessions")||"[]");
+let prs=JSON.parse(localStorage.getItem("strength_prs")||"{}");
+
+if(!prs[movement]){
+prs[movement]={
+real:{value:0,date:""},
+estimated:{value:0,date:"",source:""}
+};
+}
+
+let newReal=false;
+let newEstimated=false;
+
+if(realPR && weight>prs[movement].real.value){
+prs[movement].real={
+value:weight,
+date:date
+};
+newReal=true;
+}
+
+if(estimated>prs[movement].estimated.value){
+prs[movement].estimated={
+value:estimated,
+date:date,
+source:sets+"x"+reps+" @ "+weight+" kg"
+};
+newEstimated=true;
+}
+
+sessions.push({
+date:date,
+movement:movement,
+sets:sets,
+reps:reps,
+weight:weight,
+volume:volume,
+estimated:estimated,
+realPR:realPR,
+comment:comment
+});
+
+localStorage.setItem("strength_sessions",JSON.stringify(sessions));
+localStorage.setItem("strength_prs",JSON.stringify(prs));
+
+let msg="✅ Performance enregistrée<br>";
+msg+="Volume : "+volume+" kg<br>";
+msg+="PR estimé : "+estimated+" kg";
+
+if(newReal){
+msg+="<br>🔥 Nouveau PR réel : "+weight+" kg";
+}
+
+if(newEstimated){
+msg+="<br>⚡ Nouveau PR estimé : "+estimated+" kg";
+}
+
+document.getElementById("strengthResult").innerHTML=msg;
+
+renderPR();
+renderTrainingStats();
+}
+
+function renderPR(){
+let prs=JSON.parse(localStorage.getItem("strength_prs")||"{}");
+let html="";
+
+Object.keys(prs).sort().forEach(m=>{
+let p=prs[m];
+
+if(typeof p==="number"){
+html+="<p><b>"+m+"</b> : "+p+" kg</p>";
+return;
+}
+
+html+=`
+<div class="card">
+<h3>${m}</h3>
+<p><b>PR réel :</b> ${p.real.value||"-"} kg ${p.real.date?"— "+p.real.date:""}</p>
+<p><b>PR estimé :</b> ${p.estimated.value||"-"} kg ${p.estimated.date?"— "+p.estimated.date:""}</p>
+<p class="small">${p.estimated.source||""}</p>
+</div>
+`;
+});
+
+document.getElementById("prList").innerHTML=html||"Aucun PR enregistré.";
+}
+
+function renderTrainingStats(){
+let sessions=JSON.parse(localStorage.getItem("training_sessions")||"[]");
+
+let totalSessions=sessions.length;
+let totalDistance=sessions.reduce((sum,s)=>sum+(Number(s.distance)||0),0);
+let totalDplus=sessions.reduce((sum,s)=>sum+(Number(s.dplus)||0),0);
+
+document.getElementById("totalSessions").innerText=totalSessions;
+document.getElementById("totalDistance").innerText=Math.round(totalDistance*10)/10;
+document.getElementById("totalDplus").innerText=Math.round(totalDplus);
+}
   
 function render(){
 refreshSelect();
@@ -889,6 +1030,7 @@ loadEditor();
 renderState();
 renderChecklist();
 renderPR();
+renderTrainingStats();
 }
 
 if(!times[0])times[0]=race().start;
