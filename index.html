@@ -7,7 +7,6 @@
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#d8a733">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-
 <style>
 :root{--bg:#0b0c10;--card:#151821;--line:#2a3140;--txt:#f5f7fb;--muted:#a7b0c0;--gold:#d8a733;--blue:#32d5ff;--ok:#48e07e;--warn:#ffb020;--bad:#ff5d5d}
 *{box-sizing:border-box}
@@ -16,28 +15,28 @@ body{margin:0;background:var(--bg)!important;color:var(--txt)!important;font-fam
 header{padding:14px;background:#111827;border-bottom:2px solid var(--gold)}
 main{padding:12px;max-width:950px;margin:auto}
 h1{margin:0;color:#ffdf7e}
-h2,h3,label,p,b,span,div{color:var(--txt)}
+h2,h3,label,p,b,span,div{color:var(--txt)!important}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin:12px 0}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .kpi{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 .kpi div{background:#0f131b;border-radius:12px;padding:10px;text-align:center}
 input,select,textarea,button{width:100%;padding:12px;margin:5px 0;border-radius:10px;border:0;font-size:16px}
 input,select,textarea{background:#fff!important;color:#000!important}
-textarea{min-height:140px}
-button{background:var(--gold);font-weight:bold;color:#111}
-.secondary{background:#273142;color:white}
-.danger{background:#5b1f2a;color:white}
+textarea{min-height:120px}
+button{background:var(--gold);font-weight:bold;color:#111!important}
+.secondary{background:#273142!important;color:white!important}
+.danger{background:#5b1f2a!important;color:white!important}
 .small{color:var(--muted)!important}
 .ok{color:var(--ok)!important;font-weight:bold}.warn{color:var(--warn)!important;font-weight:bold}.bad{color:var(--bad)!important;font-weight:bold}
 .big{font-size:28px;font-weight:bold}
-.progress{height:18px;background:#273142;border-radius:99px;overflow:hidden}
-.bar{height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--blue))}
+.huge{font-size:38px;font-weight:bold}
+.progress{height:18px;background:#273142;border-radius:99px;overflow:hidden}.bar{height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--blue))}
 .next{border:2px solid var(--gold)}
 .hidden{display:none}
+.dot{display:inline-block;margin:2px 3px;font-size:22px}
 @media(max-width:700px){.grid,.kpi{grid-template-columns:1fr}}
 </style>
 </head>
-
 <body>
 <header>
 <h1>🛡️ Trail Tracker</h1>
@@ -62,19 +61,26 @@ button{background:var(--gold);font-weight:bold;color:#111}
 <div><b id="status">--</b><br><span class="small">statut</span></div>
 </div>
 
+<div class="kpi">
+<div><b id="remainKm">--</b><br><span class="small">km restants</span></div>
+<div><b id="remainDp">--</b><br><span class="small">D+ restant</span></div>
+<div><b id="remainTime">--</b><br><span class="small">temps estimé</span></div>
+</div>
+
 <div class="progress"><div id="bar" class="bar"></div></div>
 <p id="progressText" class="small"></p>
 
 <button onclick="toggleRaceMode()">Mode course</button>
+<button class="secondary" onclick="shareCrew()">Partager état course</button>
 <button class="secondary" onclick="toggleEditor()">Créer / modifier une course</button>
 <button class="danger" onclick="resetTimes()">Effacer les pointages</button>
 </section>
 
 <section id="raceMode" class="card hidden">
-<h2>MODE COURSE</h2>
+<h2>⚔️ MODE COURSE</h2>
 <div id="current" class="big"></div>
 <p id="currentInfos"></p>
-<p id="currentTime"></p>
+<p id="currentTime" class="huge"></p>
 <p id="currentBarrier"></p>
 <p id="currentMargin"></p>
 <p id="currentNut" class="small"></p>
@@ -84,18 +90,29 @@ button{background:var(--gold);font-weight:bold;color:#111}
 <button class="secondary" onclick="toggleRaceMode()">Retour complet</button>
 </section>
 
+<section class="card">
+<h2>Carte mentale</h2>
+<div id="mentalMap"></div>
+</section>
+
+<section class="card">
+<h2>État du moment</h2>
+<label>Énergie /5</label><input id="energy" type="number" min="1" max="5" value="4">
+<label>Moral /5</label><input id="moral" type="number" min="1" max="5" value="4">
+<label>Hydratation</label><select id="hydration"><option>OK</option><option>Moyen</option><option>Mauvais</option></select>
+<label>Nutrition</label><select id="nutrition"><option>OK</option><option>Moyen</option><option>Mauvais</option></select>
+<button onclick="saveStateNote()">Enregistrer l’état</button>
+<div id="stateHistory" class="small"></div>
+</section>
+
 <section id="editor" class="card hidden">
 <h2>Créer / modifier une course</h2>
-<label>Nom de la course</label>
-<input id="editName">
-
+<label>Nom de la course</label><input id="editName">
 <p class="small">Format : nom;km cumulés;D+ cumulé;D- cumulé;barrière;nutrition;poids</p>
 <textarea id="editData"></textarea>
-
 <button onclick="saveCourse()">Sauvegarder cette course</button>
 <button class="secondary" onclick="duplicateRace()">Dupliquer la course active</button>
 <button class="danger" onclick="deleteRace()">Supprimer la course active</button>
-
 <label>Exporter / importer</label>
 <textarea id="importExport"></textarea>
 <button class="secondary" onclick="exportData()">Exporter mes courses</button>
@@ -106,24 +123,16 @@ button{background:var(--gold);font-weight:bold;color:#111}
 
 <section class="card">
 <h2>Journal post-course</h2>
-<label>Temps final</label>
-<input id="jTime" onchange="saveJournal()">
-<label>Note /10</label>
-<input id="jScore" onchange="saveJournal()">
-<label>Ce qui a bien marché</label>
-<textarea id="jGood" onchange="saveJournal()"></textarea>
-<label>À corriger</label>
-<textarea id="jImprove" onchange="saveJournal()"></textarea>
+<label>Temps final</label><input id="jTime" onchange="saveJournal()">
+<label>Classement / remarque</label><input id="jScore" onchange="saveJournal()">
+<label>Ce qui a bien marché</label><textarea id="jGood" onchange="saveJournal()"></textarea>
+<label>À corriger</label><textarea id="jImprove" onchange="saveJournal()"></textarea>
 <button onclick="copyJournal()">Copier le bilan</button>
 </section>
 </main>
 
 <script>
-const defaultRace={
-name:"UT4M 50 Belledonne",
-start:"08:00",
-goal:"08:15",
-points:[
+const defaultRace={name:"UT4M 50 Belledonne",start:"08:00",goal:"08:15",points:[
 {name:"Départ Rioupéroux",km:0,dp:0,dm:0,bh:"",w:0,nut:"Départ calme, bâtons prêts."},
 {name:"Arselle",km:8.4,dp:1191,dm:106,bh:"11:30",w:.225,nut:"Boire tôt. Montée à gérer sans ego."},
 {name:"Croix de Chamrousse",km:14,dp:1816,dm:117,bh:"13:15",w:.405,nut:"Remplir les flasques. Dernier vrai ravito solide avant un long secteur."},
@@ -131,8 +140,7 @@ points:[
 {name:"Col de Pré Long",km:33.5,dp:2773,dm:2139,bh:"18:30",w:.805,nut:"Secteur clé. Manger même sans faim. Protéger les quadriceps."},
 {name:"Villard-Bonnot",km:41.6,dp:2835,dm:3133,bh:"20:00",w:.965,nut:"Descente longue. Cadence courte si les cuisses tapent."},
 {name:"Arrivée Le Versoud",km:43,dp:2835,dm:3159,bh:"21:00",w:1,nut:"Dernier effort. Rester lucide jusqu’à l’arche."}
-]
-};
+]};
 
 let races=JSON.parse(localStorage.getItem("trail_races")||"null")||[defaultRace];
 let active=Number(localStorage.getItem("trail_active")||0);
@@ -141,281 +149,59 @@ let hard=false;
 
 function race(){return races[active]}
 function points(){return race().points}
-function saveAll(){
-localStorage.setItem("trail_races",JSON.stringify(races));
-localStorage.setItem("trail_active",active);
-localStorage.setItem("trail_times_"+active,JSON.stringify(times));
-}
-
+function saveAll(){localStorage.setItem("trail_races",JSON.stringify(races));localStorage.setItem("trail_active",active);localStorage.setItem("trail_times_"+active,JSON.stringify(times))}
 function pc(t){if(!t)return null;let a=t.split(":").map(Number);return a[0]*60+a[1]}
 function pd(t){t=(t||"").toLowerCase().replace("h",":");let a=t.split(":").map(Number);return a[0]*60+(a[1]||0)}
 function fmt(m){m=Math.round(m);while(m<0)m+=1440;return String(Math.floor(m/60)%24).padStart(2,"0")+":"+String(m%60).padStart(2,"0")}
+function dur(m){m=Math.max(0,Math.round(m));return Math.floor(m/60)+"h"+String(m%60).padStart(2,"0")}
 function delta(m){let s=m>=0?"+":"-";m=Math.abs(Math.round(m));return s+Math.floor(m/60)+"h"+String(m%60).padStart(2,"0")}
 function now(){let d=new Date();return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")}
-
-function last(){
-let l=0;
-for(let i=0;i<times.length;i++) if(times[i]) l=i;
-return l;
-}
-
+function last(){let l=0;for(let i=0;i<times.length;i++)if(times[i])l=i;return l}
 function totalKm(){return points()[points().length-1].km}
-
-function projectionFinish(){
-let start=pc(race().start);
-let goal=pd(race().goal);
-let l=last();
-if(l>0){
-let elapsed=pc(times[l])-start;
-return start+elapsed/points()[l].w;
-}
-return start+goal;
-}
-
-function target(i){
-let start=pc(race().start);
-let goal=pd(race().goal);
-let l=last();
-if(times[i]) return pc(times[i]);
-if(l>0){
-let lf=pc(times[l]);
-let pf=projectionFinish();
-return lf+(pf-lf)*((points()[i].w-points()[l].w)/(1-points()[l].w));
-}
-return start+goal*points()[i].w;
-}
-
-function margin(i){
-if(!points()[i].bh)return null;
-return pc(points()[i].bh)-target(i);
-}
-
-function refreshSelect(){
-let select=document.getElementById("raceSelect");
-select.innerHTML="";
-races.forEach((r,i)=>{
-let opt=document.createElement("option");
-opt.value=i;
-opt.textContent=r.name;
-select.appendChild(opt);
-});
-select.value=active;
-}
-
-function changeRace(){
-active=Number(document.getElementById("raceSelect").value);
-times=JSON.parse(localStorage.getItem("trail_times_"+active)||"[]");
-loadRaceFields();
-saveAll();
-render();
-}
-
-function loadRaceFields(){
-document.getElementById("start").value=race().start;
-document.getElementById("goal").value=race().goal;
-}
-
-function saveSettings(){
-race().start=document.getElementById("start").value;
-race().goal=document.getElementById("goal").value;
-saveAll();
-render();
-}
-
-function pointNext(){
-let i=Math.min(last()+1,points().length-1);
-times[i]=now();
-saveAll();
-render();
-}
-
-function resetTimes(){
-if(confirm("Effacer tous les pointages ?")){
-times=[];
-localStorage.removeItem("trail_times_"+active);
-render();
-}
-}
-
-function toggleRaceMode(){
-document.getElementById("raceMode").classList.toggle("hidden");
-window.scrollTo({top:0,behavior:"smooth"});
-render();
-}
-
-function toggleHard(){
-hard=!hard;
-render();
-}
-
-function toggleEditor(){
-document.getElementById("editor").classList.toggle("hidden");
-loadEditor();
-}
-
-function loadEditor(){
-document.getElementById("editName").value=race().name;
-document.getElementById("editData").value=points().map(p=>[p.name,p.km,p.dp,p.dm,p.bh,p.nut,p.w].join(";")).join("\n");
-}
-
-function saveCourse(){
-let lines=document.getElementById("editData").value.split("\n").filter(Boolean);
-let pts=lines.map((line,i)=>{
-let parts=line.split(";");
-return{
-name:parts[0]||("Point "+i),
-km:Number(parts[1])||0,
-dp:Number(parts[2])||0,
-dm:Number(parts[3])||0,
-bh:parts[4]||"",
-nut:parts[5]||"",
-w:parts[6]!==undefined&&parts[6]!==""?Number(parts[6]):i/(lines.length-1)
-};
-});
-races[active]={name:document.getElementById("editName").value||"Nouvelle course",start:document.getElementById("start").value,goal:document.getElementById("goal").value,points:pts};
-times=[];
-saveAll();
-render();
-}
-
-function duplicateRace(){
-let copy=JSON.parse(JSON.stringify(race()));
-copy.name=copy.name+" copie";
-races.push(copy);
-active=races.length-1;
-times=[];
-saveAll();
-render();
-}
-
-function deleteRace(){
-if(races.length===1){alert("Tu dois garder au moins une course.");return;}
-if(confirm("Supprimer cette course ?")){
-races.splice(active,1);
-active=0;
-times=[];
-saveAll();
-render();
-}
-}
-
-function exportData(){
-document.getElementById("importExport").value=JSON.stringify(races,null,2);
-}
-
-function importData(){
-try{
-races=JSON.parse(document.getElementById("importExport").value);
-active=0;
-times=[];
-saveAll();
-render();
-}catch(e){alert("Import impossible : JSON invalide.");}
-}
-
-function saveJournal(){
-["jTime","jScore","jGood","jImprove"].forEach(id=>localStorage.setItem(id,document.getElementById(id).value));
-}
-
-function loadJournal(){
-["jTime","jScore","jGood","jImprove"].forEach(id=>{
-let v=localStorage.getItem(id);
-if(v)document.getElementById(id).value=v;
-});
-}
-
-function copyJournal(){
-let txt=`Bilan ${race().name}
-Temps final : ${document.getElementById("jTime").value}
-Note : ${document.getElementById("jScore").value}/10
-
-Ce qui a bien marché :
-${document.getElementById("jGood").value}
-
-À corriger :
-${document.getElementById("jImprove").value}`;
-navigator.clipboard.writeText(txt).then(()=>alert("Bilan copié."));
-}
-
+function totalDp(){return points()[points().length-1].dp}
+function projectionFinish(){let start=pc(race().start),goal=pd(race().goal),l=last();if(l>0){let elapsed=pc(times[l])-start;return start+elapsed/points()[l].w}return start+goal}
+function target(i){let start=pc(race().start),goal=pd(race().goal),l=last();if(times[i])return pc(times[i]);if(l>0){let lf=pc(times[l]),pf=projectionFinish();return lf+(pf-lf)*((points()[i].w-points()[l].w)/(1-points()[l].w))}return start+goal*points()[i].w}
+function margin(i){if(!points()[i].bh)return null;return pc(points()[i].bh)-target(i)}
+function refreshSelect(){let s=document.getElementById("raceSelect");s.innerHTML="";races.forEach((r,i)=>{let o=document.createElement("option");o.value=i;o.textContent=r.name;s.appendChild(o)});s.value=active}
+function changeRace(){active=Number(document.getElementById("raceSelect").value);times=JSON.parse(localStorage.getItem("trail_times_"+active)||"[]");loadRaceFields();saveAll();render()}
+function loadRaceFields(){document.getElementById("start").value=race().start;document.getElementById("goal").value=race().goal}
+function saveSettings(){race().start=start.value;race().goal=goal.value;saveAll();render()}
+function pointNext(){let i=Math.min(last()+1,points().length-1);times[i]=now();saveAll();render()}
+function resetTimes(){if(confirm("Effacer tous les pointages ?")){times=[];localStorage.removeItem("trail_times_"+active);render()}}
+function toggleRaceMode(){raceMode.classList.toggle("hidden");scrollTo({top:0,behavior:"smooth"});render()}
+function toggleHard(){hard=!hard;render()}
+function toggleEditor(){editor.classList.toggle("hidden");loadEditor()}
+function loadEditor(){editName.value=race().name;editData.value=points().map(p=>[p.name,p.km,p.dp,p.dm,p.bh,p.nut,p.w].join(";")).join("\n")}
+function saveCourse(){let lines=editData.value.split("\n").filter(Boolean);let pts=lines.map((line,i)=>{let a=line.split(";");return{name:a[0]||"Point "+i,km:Number(a[1])||0,dp:Number(a[2])||0,dm:Number(a[3])||0,bh:a[4]||"",nut:a[5]||"",w:a[6]!==undefined&&a[6]!==""?Number(a[6]):i/(lines.length-1)}});races[active]={name:editName.value||"Nouvelle course",start:start.value,goal:goal.value,points:pts};times=[];saveAll();render()}
+function duplicateRace(){let c=JSON.parse(JSON.stringify(race()));c.name+=" copie";races.push(c);active=races.length-1;times=[];saveAll();render()}
+function deleteRace(){if(races.length===1){alert("Garde au moins une course.");return}if(confirm("Supprimer cette course ?")){races.splice(active,1);active=0;times=[];saveAll();render()}}
+function exportData(){importExport.value=JSON.stringify(races,null,2)}
+function importData(){try{races=JSON.parse(importExport.value);active=0;times=[];saveAll();render()}catch(e){alert("JSON invalide")}}
+function saveJournal(){["jTime","jScore","jGood","jImprove"].forEach(id=>localStorage.setItem(id,document.getElementById(id).value))}
+function loadJournal(){["jTime","jScore","jGood","jImprove"].forEach(id=>{let v=localStorage.getItem(id);if(v)document.getElementById(id).value=v})}
+function copyJournal(){let txt=`Bilan ${race().name}\nTemps final : ${jTime.value}\nClassement/remarque : ${jScore.value}\n\nBien marché :\n${jGood.value}\n\nÀ corriger :\n${jImprove.value}`;navigator.clipboard.writeText(txt).then(()=>alert("Bilan copié"))}
+function shareCrew(){let l=last(),p=points()[l],n=points()[Math.min(l+1,points().length-1)],txt=`${race().name}\n\nDernier point : ${p.name}\nHeure : ${times[l]||race().start}\nProjection arrivée : ${fmt(projectionFinish())}\nProchain point : ${n.name} à ${fmt(target(Math.min(l+1,points().length-1)))}\n${margin(Math.min(l+1,points().length-1))!==null?"Marge BH : "+delta(margin(Math.min(l+1,points().length-1))):""}\n\nTout va bien 💪`;navigator.clipboard.writeText(txt).then(()=>alert("Message copié pour WhatsApp"))}
+function saveStateNote(){let l=last(),arr=JSON.parse(localStorage.getItem("state_notes")||"[]");arr.push({race:race().name,point:points()[l].name,time:times[l]||race().start,energy:energy.value,moral:moral.value,hydration:hydration.value,nutrition:nutrition.value});localStorage.setItem("state_notes",JSON.stringify(arr));render()}
+function renderState(){let arr=JSON.parse(localStorage.getItem("state_notes")||"[]").slice(-5);stateHistory.innerHTML=arr.map(x=>`${x.time} ${x.point} · énergie ${x.energy}/5 · moral ${x.moral}/5 · hydratation ${x.hydration} · nutrition ${x.nutrition}`).join("<br>")}
 function render(){
-refreshSelect();
-loadRaceFields();
-
-let start=pc(race().start);
-let goal=pd(race().goal);
-let finishTarget=start+goal;
-let finishProj=projectionFinish();
-let diff=finishProj-finishTarget;
-let l=last();
-let next=Math.min(l+1,points().length-1);
-let p=points()[next];
-let prev=points()[next-1]||points()[0];
-
-document.getElementById("finishTarget").innerText=fmt(finishTarget);
-document.getElementById("finishProj").innerText=fmt(finishProj);
-
-let status=document.getElementById("status");
-if(l===0){status.innerText="En attente";status.className=""}
-else if(diff<=-15){status.innerText="Très bien";status.className="ok"}
-else if(diff<=15){status.innerText="Dans le plan";status.className="warn"}
-else{status.innerText="À gérer";status.className="bad"}
-
-document.getElementById("bar").style.width=Math.min(100,(points()[l].km/totalKm())*100)+"%";
-document.getElementById("progressText").innerText=points()[l].km+" km / "+totalKm()+" km · prochain : "+p.name+" à "+fmt(target(next));
-
-document.getElementById("current").innerText=(next===0?"Départ":prev.name+" → "+p.name);
-document.getElementById("currentInfos").innerHTML=
-"Secteur : <b>"+(p.km-prev.km).toFixed(1)+" km</b> · <b>+"+(p.dp-prev.dp)+" D+</b> · <b>-"+(p.dm-prev.dm)+" D-</b><br>"+
-"Total : "+p.km+" km · "+p.dp+" D+ · "+p.dm+" D-";
-document.getElementById("currentTime").innerHTML="Passage prévu : <b>"+fmt(target(next))+"</b>";
-document.getElementById("currentBarrier").innerHTML="Barrière : <b>"+(p.bh||"aucune")+"</b>";
-
-let m=margin(next);
-let cls=m===null?"small":m<0?"bad":m<45?"warn":"ok";
-document.getElementById("currentMargin").className=cls;
-document.getElementById("currentMargin").innerText=m===null?"Pas de barrière":"Marge barrière : "+delta(m);
-document.getElementById("currentNut").innerText=p.nut;
-
-let hardBox=document.getElementById("hardMode");
-if(hard && m!==null){
-hardBox.classList.remove("hidden");
-hardBox.innerText="Mode urgence : marge estimée "+Math.round(m)+" min. Limite les arrêts, avance, calories rapides, hydratation.";
-}else{
-hardBox.classList.add("hidden");
-}
-
+refreshSelect();loadRaceFields();
+let startM=pc(race().start),goalM=pd(race().goal),ft=startM+goalM,fp=projectionFinish(),diff=fp-ft,l=last(),next=Math.min(l+1,points().length-1),p=points()[next],prev=points()[next-1]||points()[0];
+finishTarget.innerText=fmt(ft);finishProj.innerText=fmt(fp);
+if(l===0){status.innerText="En attente";status.className=""}else if(diff<=-15){status.innerText="Très bien";status.className="ok"}else if(diff<=15){status.innerText="Dans le plan";status.className="warn"}else{status.innerText="À gérer";status.className="bad"}
+bar.style.width=Math.min(100,(points()[l].km/totalKm())*100)+"%";
+progressText.innerText=points()[l].km+" km / "+totalKm()+" km · prochain : "+p.name+" à "+fmt(target(next));
+remainKm.innerText=(totalKm()-points()[l].km).toFixed(1);remainDp.innerText=totalDp()-points()[l].dp;remainTime.innerText=dur(fp-(times[l]?pc(times[l]):startM));
+current.innerText=(next===0?"Départ":prev.name+" → "+p.name);
+currentInfos.innerHTML="Secteur : <b>"+(p.km-prev.km).toFixed(1)+" km</b> · <b>+"+(p.dp-prev.dp)+" D+</b> · <b>-"+(p.dm-prev.dm)+" D-</b><br>Total : "+p.km+" km · "+p.dp+" D+ · "+p.dm+" D-";
+currentTime.innerHTML="Passage prévu : <b>"+fmt(target(next))+"</b>";currentBarrier.innerHTML="Barrière : <b>"+(p.bh||"aucune")+"</b>";
+let m=margin(next),cls=m===null?"small":m<0?"bad":m<45?"warn":"ok";currentMargin.className=cls;currentMargin.innerText=m===null?"Pas de barrière":"Marge barrière : "+delta(m);currentNut.innerText=p.nut;
+if(hard&&m!==null){hardMode.classList.remove("hidden");hardMode.innerText="🛡️ Le Mur approche. Priorité : boire, manger, avancer. Marge estimée : "+Math.round(m)+" min."}else hardMode.classList.add("hidden");
+mentalMap.innerHTML=points().map((pt,i)=>`<span class="dot">${i<l?"🟢":i===next?"🟡":"⚪"}</span>${pt.name}`).join("<br>");
 let html="";
-for(let i=1;i<points().length;i++){
-let a=points()[i-1],b=points()[i],mi=margin(i);
-let c=mi===null?"small":mi<0?"bad":mi<45?"warn":"ok";
-html+=`
-<div class="card ${i===next?"next":""}">
-<h3>${a.name} → ${b.name}</h3>
-<div class="grid">
-<div><b>${(b.km-a.km).toFixed(1)} km</b><br><span class="small">distance</span></div>
-<div><b>+${b.dp-a.dp} / -${b.dm-a.dm}</b><br><span class="small">D+ / D-</span></div>
-</div>
-<p>Total : ${b.km} km · ${b.dp} D+ · ${b.dm} D-</p>
-<p>Prévu : <b>${fmt(target(i))}</b> · BH : <b>${b.bh||"aucune"}</b></p>
-<p class="${c}">${mi===null?"Pas de barrière":"Marge : "+delta(mi)}</p>
-<p class="small">${b.nut}</p>
-<label>Horaire réel</label>
-<input type="time" value="${times[i]||""}" onchange="times[${i}]=this.value;saveAll();render()">
-<button onclick="times[${i}]=now();saveAll();render()">Pointer maintenant</button>
-</div>`;
-}
-document.getElementById("sectors").innerHTML=html;
-
-if(!document.getElementById("editor").classList.contains("hidden")) loadEditor();
-}
-
-if(!times[0]) times[0]=race().start;
-loadJournal();
-render();
-
-if ("serviceWorker" in navigator) {
-navigator.serviceWorker.register("./service-worker.js");
-}
+for(let i=1;i<points().length;i++){let a=points()[i-1],b=points()[i],mi=margin(i),c=mi===null?"small":mi<0?"bad":mi<45?"warn":"ok";html+=`<div class="card ${i===next?"next":""}"><h3>⚔️ ${a.name} → ${b.name}</h3><div class="grid"><div><b>${(b.km-a.km).toFixed(1)} km</b><br><span class="small">distance</span></div><div><b>+${b.dp-a.dp} / -${b.dm-a.dm}</b><br><span class="small">D+ / D-</span></div></div><p>Total : ${b.km} km · ${b.dp} D+ · ${b.dm} D-</p><p>Prévu : <b>${fmt(target(i))}</b> · BH : <b>${b.bh||"aucune"}</b></p><p class="${c}">${mi===null?"Pas de barrière":"Marge : "+delta(mi)}</p><p class="small">${b.nut}</p><label>Horaire réel</label><input type="time" value="${times[i]||""}" onchange="times[${i}]=this.value;saveAll();render()"><button onclick="times[${i}]=now();saveAll();render()">Pointer maintenant</button></div>`}
+sectors.innerHTML=html;if(!editor.classList.contains("hidden"))loadEditor();renderState()}
+if(!times[0])times[0]=race().start;loadJournal();render();
+if("serviceWorker"in navigator){navigator.serviceWorker.register("./service-worker.js")}
 </script>
 </body>
 </html>
