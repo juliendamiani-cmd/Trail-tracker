@@ -51,6 +51,15 @@ button{background:var(--gold);font-weight:bold;color:#111!important}
 </header>
 
 <main>
+
+<section id="homeChoice" class="card">
+<h2>Choisir l’interface</h2>
+<button onclick="openInterface('course')">🏔️ Courses</button>
+<button class="secondary" onclick="openInterface('training')">🏋️ Entraînements</button>
+</section>
+
+<div id="courseApp" class="hidden">
+<button class="secondary" onclick="openInterface('home')">⬅️ Retour accueil</button>
 <section class="card">
 <h2>Course</h2>
 
@@ -220,6 +229,18 @@ button{background:var(--gold);font-weight:bold;color:#111!important}
 <button onclick="copyJournal()">Copier le bilan</button>
 <button class="secondary" onclick="copyFullReport()">Copier bilan complet</button>
 </section>
+
+  </div>
+
+<div id="trainingApp" class="hidden">
+<button class="secondary" onclick="openInterface('home')">⬅️ Retour accueil</button>
+
+<section class="card">
+<h2>🏋️ Entraînements</h2>
+<p class="small">Ici on mettra le suivi training, CrossFit, muscu, PR réels et PR estimés.</p>
+</section>
+</div>
+  
 </main>
 
 <script>
@@ -250,6 +271,25 @@ if(active<0 || active>=races.length){active=0}
 let times=JSON.parse(localStorage.getItem("trail_times_"+active)||"[]");
 let hard=false;
 
+function openInterface(mode){
+document.getElementById("homeChoice").classList.add("hidden");
+document.getElementById("courseApp").classList.add("hidden");
+document.getElementById("trainingApp").classList.add("hidden");
+
+if(mode==="course"){
+document.getElementById("courseApp").classList.remove("hidden");
+localStorage.setItem("appInterface","course");
+}
+else if(mode==="training"){
+document.getElementById("trainingApp").classList.remove("hidden");
+localStorage.setItem("appInterface","training");
+}
+else{
+document.getElementById("homeChoice").classList.remove("hidden");
+localStorage.removeItem("appInterface");
+}
+}
+  
 function race(){return races[active]}
 function points(){return race().points}
 function saveAll(){
@@ -732,6 +772,7 @@ renderPR();
 if(!times[0])times[0]=race().start;
 loadJournal();
 render();
+openInterface(localStorage.getItem("appInterface")||"home");
 
 if("serviceWorker" in navigator){
 navigator.serviceWorker.register("./service-worker.js");
