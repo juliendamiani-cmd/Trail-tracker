@@ -1,4 +1,4 @@
-const CACHE_NAME = "trail-tracker-v1";
+const CACHE_NAME = "trail-tracker-v10";
 
 const FILES_TO_CACHE = [
   "./",
