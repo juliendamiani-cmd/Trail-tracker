@@ -119,6 +119,58 @@ button{background:var(--gold);font-weight:bold;color:#111!important}
 <div id="stateHistory" class="small"></div>
 </section>
 
+  <section class="card">
+<h2>🏋️ Force / CrossFit</h2>
+
+<label>Mouvement</label>
+<select id="movement">
+<option>Back Squat</option>
+<option>Front Squat</option>
+<option>Deadlift</option>
+<option>Bench Press</option>
+<option>Strict Press</option>
+<option>Push Press</option>
+<option>Snatch</option>
+<option>Clean</option>
+<option>Clean & Jerk</option>
+<option>Jerk</option>
+<option>Overhead Squat</option>
+<option>Pull-up</option>
+<option>Chest-to-bar</option>
+<option>Bar Muscle-up</option>
+<option>Ring Muscle-up</option>
+<option>Handstand Push-up</option>
+<option>Toes-to-bar</option>
+<option>Wall Ball</option>
+<option>Kettlebell Swing</option>
+<option>Box Jump</option>
+<option>Farmer Carry</option>
+<option>SkiErg</option>
+<option>Row</option>
+<option>Bike</option>
+</select>
+
+<label>Séries</label>
+<input id="sets" type="number" value="5">
+
+<label>Répétitions</label>
+<input id="reps" type="number" value="5">
+
+<label>Charge / score</label>
+<input id="weight" type="number" value="0">
+
+<label>Commentaire</label>
+<input id="strengthComment" placeholder="RPE, sensations, technique...">
+
+<button onclick="saveStrength()">Enregistrer</button>
+<div id="strengthResult" class="small"></div>
+</section>
+
+<section class="card">
+<h2>🏆 Mes PR</h2>
+<div id="prList" class="small"></div>
+</section>
+  
 <section class="card">
 <h2>Checklist matériel</h2>
 <div id="checklist"></div>
@@ -541,6 +593,57 @@ ${document.getElementById("jImprove").value}`;
 navigator.clipboard.writeText(txt).then(()=>alert("Bilan complet copié"));
 }
 
+  function saveStrength(){
+let movement=document.getElementById("movement").value;
+let sets=Number(document.getElementById("sets").value)||0;
+let reps=Number(document.getElementById("reps").value)||0;
+let weight=Number(document.getElementById("weight").value)||0;
+let comment=document.getElementById("strengthComment").value||"";
+let volume=sets*reps*weight;
+
+let prs=JSON.parse(localStorage.getItem("strength_prs")||"{}");
+let sessions=JSON.parse(localStorage.getItem("strength_sessions")||"[]");
+
+let oldPR=prs[movement]||0;
+let newPR=weight>oldPR;
+
+if(newPR){
+prs[movement]=weight;
+}
+
+sessions.push({
+date:new Date().toLocaleDateString("fr-FR"),
+movement:movement,
+sets:sets,
+reps:reps,
+weight:weight,
+volume:volume,
+comment:comment,
+newPR:newPR
+});
+
+localStorage.setItem("strength_prs",JSON.stringify(prs));
+localStorage.setItem("strength_sessions",JSON.stringify(sessions));
+
+document.getElementById("strengthResult").innerHTML=
+newPR
+? "🔥 Nouveau PR "+movement+" : "+weight+" kg"
+: "✅ Perf enregistrée · volume : "+volume+" kg";
+
+renderPR();
+}
+
+function renderPR(){
+let prs=JSON.parse(localStorage.getItem("strength_prs")||"{}");
+let html="";
+
+Object.keys(prs).sort().forEach(m=>{
+html+="<p><b>"+m+"</b> : "+prs[m]+" kg</p>";
+});
+
+document.getElementById("prList").innerHTML=html||"Aucun PR enregistré.";
+}
+  
 function render(){
 refreshSelect();
 loadRaceFields();
@@ -623,6 +726,7 @@ loadEditor();
 
 renderState();
 renderChecklist();
+renderPR();
 }
 
 if(!times[0])times[0]=race().start;
